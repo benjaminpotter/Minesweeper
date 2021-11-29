@@ -46,12 +46,12 @@ int main() {
 
     constructGrid();
 
-    for (int i = 0; i < SIZE; i++) {
-        for (int j = 0; j < SIZE; j++) {
-            if(grid[i][j].contains != MINE)
-                grid[i][j].state = NOT_HIDDEN;
-        }
-    }
+//    for (int i = 0; i < SIZE; i++) {
+//        for (int j = 0; j < SIZE; j++) {
+//            if(grid[i][j].contains != MINE)
+//                grid[i][j].state = NOT_HIDDEN;
+//        }
+//    }
 
     printGrid();
 
