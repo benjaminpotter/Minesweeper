@@ -20,7 +20,7 @@
 #define SIZE 10
 #define MINE_COUNT 10
 
-// state
+// state, essentially an enum
 #define HIDDEN 0
 #define NOT_HIDDEN 1
 #define FLAGGED 2
@@ -46,15 +46,17 @@ int main() {
 
     constructGrid();
 
-//    for (int i = 0; i < SIZE; i++) {
-//        for (int j = 0; j < SIZE; j++) {
-//            grid[i][j].state = NOT_HIDDEN;
-//        }
-//    }
+    for (int i = 0; i < SIZE; i++) {
+        for (int j = 0; j < SIZE; j++) {
+            if(grid[i][j].contains != MINE)
+                grid[i][j].state = NOT_HIDDEN;
+        }
+    }
 
     printGrid();
 
     // enter game loop
+    int won = 0;
     int running = 1;
     while(running) {
         // get instruction from the player
@@ -66,15 +68,19 @@ int main() {
         scanf("%c %d %d", &cmd, &row, &col);
         printf("\n");
 
-        if (cmd == 'c')
+        if (cmd == 'c') {
             running = check(row, col);
+        } else if (cmd == 'f') {
+            flag(row, col);
+        }
 
         printGrid();
+        won = checkWin();
+        if (won)
+            running = 0;
     }
 
-
-    // update win ,lose condition
-    printf("You hit a mine, game over.");
+    printf(won ? "Congratulations! You win!" : "You hit a mine, game over.");
 
     destructGrid();
 
@@ -92,7 +98,7 @@ void constructGrid() {
 
     // randomly assign mines
     int mines = MINE_COUNT;
-    while(mines >= 0) {
+    while(mines > 0) {
         // get random position
         int row = rand() % SIZE;
         int col = rand() % SIZE;
@@ -106,7 +112,30 @@ void constructGrid() {
         mines--; // placed a mine so subtract from the total
     }
 
-    // TODO update cell values based on amount of adjacent mines
+    // update surrounding cells based on mine placement
+    for(int i = 0; i < SIZE; i++) {
+        for(int j = 0; j < SIZE; j++) {
+            struct cell c = grid[i][j];
+
+            if (c.contains == MINE) {
+                // update all adjacent cells
+                // determine valid adjacent cells
+                for(int g = i-1; g < 3-1 + i; g++) {
+                    for(int h = j-1; h < 3-1 + j; h++) {
+                        if(g==i && h == j)
+                            continue;
+
+                        if (g >= 0 && g < SIZE && h >= 0 && h < SIZE) {
+                            if(grid[g][h].contains == MINE)
+                                continue;
+
+                            grid[g][h].contains++;
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 void destructGrid() {
@@ -122,7 +151,6 @@ void destructGrid() {
 void printGrid() {
     // loop over all rows and columns
     for(int i = 0; i < SIZE; i++) {
-        char line[11]; // include spaces
         for(int j = 0; j < SIZE; j ++) {
             struct cell c = grid[i][j];
             char cellVal = '*';
@@ -137,26 +165,54 @@ void printGrid() {
                 cellVal = 'F';
             }
 
-            line[j] = cellVal; // TODO update grid printing to maintain two spaces between cells
-            //line[j + 1] = ' ';
-            //line[j + 2] = ' ';
+            printf("%c  ", cellVal);
         }
-        printf("%s \n", line);
+        printf("\n");
     }
 }
 
+void flag(int row, int col) {
+    if(grid[row][col].state == NOT_HIDDEN)
+        return;
+
+    grid[row][col].state = grid[row][col].state == HIDDEN ? FLAGGED : HIDDEN;
+}
+
 int check(int row, int col) {
+    if (row < 0 || row >= SIZE || col < 0 || col >= SIZE)
+        return 1;
+
     struct cell c = grid[row][col];
 
     if (c.state != HIDDEN)
         return 1; // if the mine is not already visible e.g flagged or revealed, then don't update it
 
-    if (c.contains == 0){
-        // check adjacent tiles
-    }
-
     // update the checked cell
     grid[row][col].state = NOT_HIDDEN; // NOTE: can't just update cell "c" b/c it wont change the actual grid array, just a copy
 
+    if (c.contains == 0){
+        // check adjacent tiles
+        check(row + 1, col + 1);
+        check(row + 1, col    );
+        check(row + 1, col - 1);
+        check(row    , col + 1);
+        check(row    , col - 1);
+        check(row - 1, col + 1);
+        check(row - 1, col + 0);
+        check(row - 1, col - 1);
+    }
+
     return c.contains != MINE;
+}
+
+int checkWin() {
+    int cellsRevealed = 0;
+    for(int i = 0; i < SIZE; i++) {
+        for(int j = 0; j < SIZE; j++) {
+            if(grid[i][j].state == NOT_HIDDEN)
+                cellsRevealed++;
+        }
+    }
+
+    return cellsRevealed == 100 - 10;
 }
